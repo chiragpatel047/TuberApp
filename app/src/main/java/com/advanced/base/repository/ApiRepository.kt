@@ -5,6 +5,7 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import com.advanced.base.Common.API_HOST
 import com.advanced.base.Common.API_KEY
+import com.advanced.base.Common.ResponseType
 import com.advanced.base.api.YoutubeApi
 import com.advanced.base.models.AdaptiveFormat
 import com.advanced.base.models.StreamingData
@@ -16,15 +17,21 @@ import javax.inject.Inject
 
 class ApiRepository @Inject constructor(val youtubeApi: YoutubeApi) {
 
-    private val _data = MutableStateFlow<YoutubeModel>(YoutubeModel())
-    val data: StateFlow<YoutubeModel>
-        get() = _data
 
-    suspend fun getResponse(id: String) {
+    var youtubeModel = YoutubeModel()
+
+    suspend fun getResponse(id: String): ResponseType<YoutubeModel> {
         val result = youtubeApi.getResponse(id, API_KEY, API_HOST)
 
         if (result.isSuccessful && result.body() != null) {
-            _data.emit(result.body()!!)
+            youtubeModel = result.body()!!
         }
+
+        return try {
+            ResponseType.Sucess(youtubeModel)
+        } catch (e: Exception) {
+            ResponseType.Error(e.message.toString())
+        }
+
     }
 }
