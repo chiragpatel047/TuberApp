@@ -4,8 +4,6 @@ import android.app.DownloadManager
 import android.content.Context
 import android.net.Uri
 import android.os.Environment
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -21,6 +19,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.State
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.mutableStateOf
@@ -28,22 +27,22 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.LiveData
 import androidx.lifecycle.viewmodel.compose.viewModel
-import coil.compose.rememberImagePainter
 import com.advanced.base.R
 import com.advanced.base.components.FilledCustomButton
 import com.advanced.base.components.topBar
-import com.advanced.base.models.AdaptiveFormat
 import com.advanced.base.models.YoutubeModel
 import com.advanced.base.viewmodel.HomeViewModel
-import retrofit2.Response
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.net.URL
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -97,15 +96,22 @@ fun HomeScreen(context: Context) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(5.dp),
+                        .padding(5.dp)
+                        .clip(RoundedCornerShape(15.dp))
+                        .background(MaterialTheme.colorScheme.secondaryContainer),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
+
+
                     Text(
-                        text = it.qualityLabel,
+                        text = it.qualityLabel + " (" + android.text.format.Formatter.formatFileSize(
+                            context,
+                            it.contentLength.toLong()
+                        ) + ")",
                         fontFamily = FontFamily(Font(R.font.poppins_medium)),
                         fontSize = 14.sp,
-                        color = MaterialTheme.colorScheme.onPrimary,
+                        color = MaterialTheme.colorScheme.onSecondaryContainer,
                         modifier = Modifier.padding(8.dp)
                     )
 
@@ -130,26 +136,30 @@ fun HomeScreen(context: Context) {
                     )
                 }
             }
-
         }
     }
 }
 
 
 fun downloadVideo(url: String, title: String, context: Context) {
-    val request =
-        DownloadManager.Request(Uri.parse(url))
-            .setTitle("Download")
-            .setDescription(title)
-            .setAllowedNetworkTypes(
-                DownloadManager.Request.NETWORK_MOBILE
-                        or DownloadManager.Request.NETWORK_WIFI
-            )
-            .setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, title + ".mp4")
-            .setNotificationVisibility(
-                DownloadManager.Request.VISIBILITY_VISIBLE
-                        or DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED
-            )
-    val downloadManager = context.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
-    downloadManager.enqueue(request)
+
+    CoroutineScope(Dispatchers.IO).launch {
+
+        val request =
+            DownloadManager.Request(Uri.parse(url))
+                .setTitle("Tuber")
+                .setDescription(title)
+                .setAllowedNetworkTypes(
+                    DownloadManager.Request.NETWORK_MOBILE
+                            or DownloadManager.Request.NETWORK_WIFI
+                )
+                .setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, title + ".mp4")
+                .setNotificationVisibility(
+                    DownloadManager.Request.VISIBILITY_VISIBLE
+                            or DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED
+                )
+
+        val downloadManager = context.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
+        downloadManager.enqueue(request)
+    }
 }
