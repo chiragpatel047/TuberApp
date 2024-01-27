@@ -5,5 +5,4 @@ public sealed class ResponseType<T>(val data: T? = null, val errorMsg: String? =
     public class Error<T>(errorMsg: String) : ResponseType<T>(errorMsg = errorMsg)
     public class Loading<T>() : ResponseType<T>()
 
-    public class Nothing<T>() : ResponseType<T>()
 }

@@ -34,8 +34,7 @@ fun progressBar(isVisible: Boolean) {
         Box(
             modifier = Modifier
                 .zIndex(1f)
-                .fillMaxSize()
-                .background(Color(0x4D000000)),
+                .fillMaxSize(),
             contentAlignment = Alignment.Center
         ) {
             Row(

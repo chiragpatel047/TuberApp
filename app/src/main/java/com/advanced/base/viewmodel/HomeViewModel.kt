@@ -16,7 +16,7 @@ import javax.inject.Inject
 @HiltViewModel
 class HomeViewModel @Inject constructor(val apiRepository: ApiRepository) : ViewModel() {
 
-    private val _data = MutableStateFlow<ResponseType<YoutubeModel>>(value = ResponseType.Nothing())
+    private val _data = MutableStateFlow<ResponseType<YoutubeModel>>(value = ResponseType.Loading())
     val data: StateFlow<ResponseType<YoutubeModel>>
         get() = _data
 

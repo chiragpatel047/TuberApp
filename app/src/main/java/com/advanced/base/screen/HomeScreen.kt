@@ -5,6 +5,7 @@ import android.content.Context
 import android.net.Uri
 import android.os.Environment
 import android.widget.Toast
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -23,6 +24,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.State
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -48,6 +50,11 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.last
+import kotlinx.coroutines.flow.onCompletion
+import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -55,13 +62,10 @@ import kotlinx.coroutines.launch
 fun HomeScreen(context: Context) {
 
     val homeViewModel: HomeViewModel = viewModel()
-    val response = homeViewModel.data.collectAsState()
 
-    var progressVisible = remember {
+    val progressVisible = remember {
         mutableStateOf(false)
     }
-
-    progressBar(progressVisible.value)
 
     Column {
         topBar("Home")
@@ -98,7 +102,9 @@ fun HomeScreen(context: Context) {
                 })
 
             FilledCustomButton(imageIcon = R.drawable.searchicon) {
+
                 progressVisible.value = true
+
                 val tempUrl1 = search.value
                 val tempUrl2 = tempUrl1.substringAfterLast("/")
                 val finalUrl = tempUrl2.substringBefore("?")
@@ -110,24 +116,87 @@ fun HomeScreen(context: Context) {
 
         val scrollState = rememberScrollState()
 
-        when (response.value) {
-            is ResponseType.Error -> {
+        val responseData = remember {
+            mutableStateOf(YoutubeModel())
+        }
 
+        LaunchedEffect(key1 = "dm") {
+            CoroutineScope(Dispatchers.IO).launch {
+                val response = homeViewModel.data.onStart {
+
+                }.onCompletion {
+                    progressVisible.value = false
+                }.collect {
+                    when (it) {
+                        is ResponseType.Sucess -> {
+                            progressVisible.value = false
+                            responseData.value = it.data!!
+                        }
+
+                        is ResponseType.Error -> {
+
+                        }
+
+                        is ResponseType.Loading -> {
+                            //progressVisible.value = true
+                        }
+                    }
+                }
             }
+        }
 
-            is ResponseType.Loading -> {
-                progressVisible.value = true
+        AnimatedVisibility(visible = !progressVisible.value) {
+            Column(modifier = Modifier.verticalScroll(scrollState)) {
+                Text(
+                    text = responseData.value.videoDetails.title,
+                    fontFamily = FontFamily(Font(R.font.poppins_medium)),
+                    fontSize = 14.sp,
+                    color = MaterialTheme.colorScheme.onSecondaryContainer,
+                    modifier = Modifier.padding(15.dp)
+                )
 
-            }
+                responseData.value.streamingData.formats.forEach {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(10.dp, 5.dp)
+                            .clip(RoundedCornerShape(15.dp))
+                            .background(MaterialTheme.colorScheme.secondaryContainer),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
 
-            is ResponseType.Nothing -> {
+                        Text(
+                            text = it.qualityLabel,
+                            fontFamily = FontFamily(Font(R.font.poppins_medium)),
+                            fontSize = 14.sp,
+                            color = MaterialTheme.colorScheme.onSecondaryContainer,
+                            modifier = Modifier.padding(15.dp)
+                        )
 
-            }
-
-            is ResponseType.Sucess -> {
-                progressVisible.value = false
-                Column(modifier = Modifier.verticalScroll(scrollState)) {
-                    response.value.data!!.streamingData.formats.forEach {
+                        Button(
+                            modifier = Modifier
+                                .padding(20.dp),
+                            content = {
+                                Text(
+                                    text = "Download",
+                                    fontFamily = FontFamily(Font(R.font.poppins_medium)),
+                                    color = MaterialTheme.colorScheme.onPrimary,
+                                    modifier = Modifier.padding(8.dp)
+                                )
+                            },
+                            onClick = {
+                                downloadVideo(
+                                    it.url,
+                                    responseData.value!!.videoDetails.title,
+                                    context
+                                )
+                            }
+                        )
+                    }
+                }
+                responseData.value.streamingData.adaptiveFormats.forEach {
+                    if (it.qualityLabel.isEmpty()) {
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -139,7 +208,7 @@ fun HomeScreen(context: Context) {
                         ) {
 
                             Text(
-                                text = it.qualityLabel,
+                                text = "Audio",
                                 fontFamily = FontFamily(Font(R.font.poppins_medium)),
                                 fontSize = 14.sp,
                                 color = MaterialTheme.colorScheme.onSecondaryContainer,
@@ -160,64 +229,23 @@ fun HomeScreen(context: Context) {
                                 onClick = {
                                     downloadVideo(
                                         it.url,
-                                        response.value.data!!.videoDetails.title,
+                                        responseData.value.videoDetails.title,
                                         context
                                     )
                                 }
                             )
                         }
                     }
-                    response.value.data!!.streamingData.adaptiveFormats.forEach {
-                        if (it.qualityLabel.isEmpty()) {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(10.dp, 5.dp)
-                                    .clip(RoundedCornerShape(15.dp))
-                                    .background(MaterialTheme.colorScheme.secondaryContainer),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-
-                                Text(
-                                    text = "Audio",
-                                    fontFamily = FontFamily(Font(R.font.poppins_medium)),
-                                    fontSize = 14.sp,
-                                    color = MaterialTheme.colorScheme.onSecondaryContainer,
-                                    modifier = Modifier.padding(15.dp)
-                                )
-
-                                Button(
-                                    modifier = Modifier
-                                        .padding(20.dp),
-                                    content = {
-                                        Text(
-                                            text = "Download",
-                                            fontFamily = FontFamily(Font(R.font.poppins_medium)),
-                                            color = MaterialTheme.colorScheme.onPrimary,
-                                            modifier = Modifier.padding(8.dp)
-                                        )
-                                    },
-                                    onClick = {
-                                        downloadVideo(
-                                            it.url,
-                                            response.value.data!!.videoDetails.title,
-                                            context
-                                        )
-                                    }
-                                )
-                            }
-                        }
-                    }
                 }
-
             }
+
         }
 
     }
 
-}
+    progressBar(progressVisible.value)
 
+}
 
 fun downloadVideo(url: String, title: String, context: Context) {
 
