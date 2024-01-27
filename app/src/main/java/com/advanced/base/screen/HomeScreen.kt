@@ -4,14 +4,18 @@ import android.app.DownloadManager
 import android.content.Context
 import android.net.Uri
 import android.os.Environment
+import android.provider.ContactsContract.CommonDataKinds.StructuredName
+import android.util.Log
 import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -30,6 +34,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
@@ -37,6 +42,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.viewmodel.compose.viewModel
+import coil.compose.rememberImagePainter
 import com.advanced.base.Common.ResponseType
 import com.advanced.base.R
 import com.advanced.base.components.FilledCustomButton
@@ -56,6 +62,8 @@ import kotlinx.coroutines.flow.onCompletion
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.launch
+import retrofit2.http.Url
+import java.net.URL
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -65,6 +73,14 @@ fun HomeScreen(context: Context) {
 
     val progressVisible = remember {
         mutableStateOf(false)
+    }
+
+    val contentVisible = remember {
+        mutableStateOf(false)
+    }
+
+    val thumbnail = remember {
+        mutableStateOf("")
     }
 
     Column {
@@ -104,6 +120,7 @@ fun HomeScreen(context: Context) {
             FilledCustomButton(imageIcon = R.drawable.searchicon) {
 
                 progressVisible.value = true
+                contentVisible.value = false
 
                 val tempUrl1 = search.value
                 val tempUrl2 = tempUrl1.substringAfterLast("/")
@@ -126,10 +143,12 @@ fun HomeScreen(context: Context) {
 
                 }.onCompletion {
                     progressVisible.value = false
+                    contentVisible.value = true
                 }.collect {
                     when (it) {
                         is ResponseType.Sucess -> {
                             progressVisible.value = false
+                            contentVisible.value = true
                             responseData.value = it.data!!
                         }
 
@@ -145,15 +164,38 @@ fun HomeScreen(context: Context) {
             }
         }
 
-        AnimatedVisibility(visible = !progressVisible.value) {
+        AnimatedVisibility(visible = contentVisible.value) {
             Column(modifier = Modifier.verticalScroll(scrollState)) {
-                Text(
-                    text = responseData.value.videoDetails.title,
-                    fontFamily = FontFamily(Font(R.font.poppins_medium)),
-                    fontSize = 14.sp,
-                    color = MaterialTheme.colorScheme.onSecondaryContainer,
-                    modifier = Modifier.padding(15.dp)
-                )
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(10.dp, 5.dp)
+                        .clip(RoundedCornerShape(15.dp))
+                        .background(MaterialTheme.colorScheme.tertiaryContainer),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+
+                    Image(
+                        painter = rememberImagePainter(thumbnail.value),
+                        modifier = Modifier
+                            .size(100.dp)
+                            .padding(15.dp, 5.dp, 15.dp, 0.dp),
+                        contentDescription = ""
+                    )
+
+                    Text(
+                        text = responseData.value.videoDetails.title,
+                        fontFamily = FontFamily(Font(R.font.poppins_medium)),
+                        fontSize = 14.sp,
+                        color = MaterialTheme.colorScheme.onSecondaryContainer,
+                        modifier = Modifier.padding(0.dp, 15.dp, 15.dp, 15.dp)
+                    )
+                }
+
+                responseData.value.videoDetails.thumbnail.thumbnails.forEach {
+                    thumbnail.value = it.url
+                }
 
                 responseData.value.streamingData.formats.forEach {
                     Row(
@@ -166,8 +208,24 @@ fun HomeScreen(context: Context) {
                         verticalAlignment = Alignment.CenterVertically
                     ) {
 
+                        val fileSize = remember {
+                            mutableStateOf("...")
+                        }
+                        LaunchedEffect(key1 = "calcu") {
+                            CoroutineScope(Dispatchers.IO).launch {
+                                val url = URL(it.url)
+                                val connection = url.openConnection()
+                                connection.connect()
+                                fileSize.value = android.text.format.Formatter.formatFileSize(
+                                    context,
+                                    connection.contentLengthLong
+                                )
+
+                            }
+                        }
+
                         Text(
-                            text = it.qualityLabel,
+                            text = it.qualityLabel + " (" + fileSize.value + ")",
                             fontFamily = FontFamily(Font(R.font.poppins_medium)),
                             fontSize = 14.sp,
                             color = MaterialTheme.colorScheme.onSecondaryContainer,
