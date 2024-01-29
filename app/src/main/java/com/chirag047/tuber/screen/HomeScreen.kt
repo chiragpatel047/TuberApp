@@ -35,8 +35,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.rememberImagePainter
-import com.advanced.base.R
 import com.chirag047.tuber.Common.ResponseType
+import com.chirag047.tuber.R
 import com.chirag047.tuber.components.FilledCustomButton
 import com.chirag047.tuber.components.progressBar
 import com.chirag047.tuber.components.topBar

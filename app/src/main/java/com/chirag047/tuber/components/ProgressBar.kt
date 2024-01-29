@@ -21,7 +21,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
-import com.advanced.base.R
+import com.chirag047.tuber.R
 
 @Composable
 fun progressBar(isVisible: Boolean) {

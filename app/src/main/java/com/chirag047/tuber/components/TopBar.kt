@@ -15,7 +15,7 @@ import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.advanced.base.R
+import com.chirag047.tuber.R
 
 @Composable
 fun topBar(title: String) {

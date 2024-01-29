@@ -6,11 +6,11 @@ plugins {
 }
 
 android {
-    namespace 'com.advanced.base'
+    namespace 'com.chirag047.tuber'
     compileSdk 33
 
     defaultConfig {
-        applicationId "com.advanced.base"
+        applicationId "com.chirag047.tuber"
         minSdk 24
         targetSdk 33
         versionCode 1
